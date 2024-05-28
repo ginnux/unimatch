@@ -10,7 +10,7 @@ from dataloader.flow.datasets import build_train_dataset
 from unimatch.unimatch import UniMatch
 from loss.flow_loss import flow_loss_func
 
-from evaluate_flow import (validate_chairs, validate_things, validate_sintel, validate_kitti,
+from evaluate_flow import (validate_chairs, validate_things, validate_sintel, validate_kitti, validate_tub,
                            create_kitti_submission, create_sintel_submission,
                            inference_flow,
                            )
@@ -236,6 +236,18 @@ def main(args):
 
         if 'chairs' in args.val_dataset:
             results_dict = validate_chairs(model_without_ddp,
+                                           with_speed_metric=args.with_speed_metric,
+                                           attn_type=args.attn_type,
+                                           attn_splits_list=args.attn_splits_list,
+                                           corr_radius_list=args.corr_radius_list,
+                                           prop_radius_list=args.prop_radius_list,
+                                           num_reg_refine=args.num_reg_refine,
+                                           )
+
+            val_results.update(results_dict)
+
+        if 'tub' in args.val_dataset:
+            results_dict = validate_tub(model_without_ddp,
                                            with_speed_metric=args.with_speed_metric,
                                            attn_type=args.attn_type,
                                            attn_splits_list=args.attn_splits_list,

@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from dataloader.flow.datasets import FlyingChairs, FlyingThings3D, MpiSintel, KITTI
+from dataloader.flow.datasets import FlyingChairs, FlyingThings3D, MpiSintel, KITTI, CrowdFlow
 from utils import frame_utils
 from utils.flow_viz import save_vis_flow_tofile, flow_to_image
 import imageio
@@ -176,6 +176,94 @@ def validate_chairs(model,
         s40plus_list = []
 
     val_dataset = FlyingChairs(split='validation')
+
+    print('Number of validation image pairs: %d' % len(val_dataset))
+
+    for val_id in range(len(val_dataset)):
+        image1, image2, flow_gt, _ = val_dataset[val_id]
+
+        image1 = image1[None].cuda()
+        image2 = image2[None].cuda()
+
+        results_dict = model(image1, image2,
+                             attn_type=attn_type,
+                             attn_splits_list=attn_splits_list,
+                             corr_radius_list=corr_radius_list,
+                             prop_radius_list=prop_radius_list,
+                             num_reg_refine=num_reg_refine,
+                             task='flow',
+                             )
+
+        flow_pr = results_dict['flow_preds'][-1]  # [B, 2, H, W]
+
+        assert flow_pr.size()[-2:] == flow_gt.size()[-2:]
+
+        epe = torch.sum((flow_pr[0].cpu() - flow_gt) ** 2, dim=0).sqrt()
+        epe_list.append(epe.view(-1).numpy())
+
+        if with_speed_metric:
+            flow_gt_speed = torch.sum(flow_gt ** 2, dim=0).sqrt()
+            valid_mask = (flow_gt_speed < 10)
+            if valid_mask.max() > 0:
+                s0_10_list.append(epe[valid_mask].cpu().numpy())
+
+            valid_mask = (flow_gt_speed >= 10) * (flow_gt_speed <= 40)
+            if valid_mask.max() > 0:
+                s10_40_list.append(epe[valid_mask].cpu().numpy())
+
+            valid_mask = (flow_gt_speed > 40)
+            if valid_mask.max() > 0:
+                s40plus_list.append(epe[valid_mask].cpu().numpy())
+
+    epe_all = np.concatenate(epe_list)
+    epe = np.mean(epe_all)
+    px1 = np.mean(epe_all > 1)
+    px3 = np.mean(epe_all > 3)
+    px5 = np.mean(epe_all > 5)
+    print("Validation Chairs EPE: %.3f, 1px: %.3f, 3px: %.3f, 5px: %.3f" % (epe, px1, px3, px5))
+    results['chairs_epe'] = epe
+    results['chairs_1px'] = px1
+    results['chairs_3px'] = px3
+    results['chairs_5px'] = px5
+
+    if with_speed_metric:
+        s0_10 = np.mean(np.concatenate(s0_10_list))
+        s10_40 = np.mean(np.concatenate(s10_40_list))
+        s40plus = np.mean(np.concatenate(s40plus_list))
+
+        print("Validation Chairs s0_10: %.3f, s10_40: %.3f, s40+: %.3f" % (
+            s0_10,
+            s10_40,
+            s40plus))
+
+        results['chairs_s0_10'] = s0_10
+        results['chairs_s10_40'] = s10_40
+        results['chairs_s40+'] = s40plus
+
+    return results
+
+
+
+@torch.no_grad()
+def validate_tub(model,
+                    with_speed_metric=False,
+                    attn_type='swin',
+                    attn_splits_list=None,
+                    corr_radius_list=None,
+                    prop_radius_list=None,
+                    num_reg_refine=1,
+                    ):
+    """ Perform evaluation on the FlyingChairs (test) split """
+    model.eval()
+    epe_list = []
+    results = {}
+
+    if with_speed_metric:
+        s0_10_list = []
+        s10_40_list = []
+        s40plus_list = []
+
+    val_dataset = CrowdFlow(split='validation')
 
     print('Number of validation image pairs: %d' % len(val_dataset))
 
