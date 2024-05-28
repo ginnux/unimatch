@@ -17,10 +17,13 @@ from dataloader.flow.transforms import FlowAugmentor, SparseFlowAugmentor
 
 
 class FlowDataset(data.Dataset):
-    def __init__(self, aug_params=None, sparse=False,
-                 load_occlusion=False,
-                 vkitti2=False,
-                 ):
+    def __init__(
+        self,
+        aug_params=None,
+        sparse=False,
+        load_occlusion=False,
+        vkitti2=False,
+    ):
         self.augmentor = None
         self.sparse = sparse
 
@@ -47,8 +50,8 @@ class FlowDataset(data.Dataset):
             img2 = frame_utils.read_gen(self.image_list[index][1])
 
             if len(np.array(img1).shape) == 2:  # gray image
-                img1 = img1.convert('RGB')
-                img2 = img2.convert('RGB')
+                img1 = img1.convert("RGB")
+                img2 = img2.convert("RGB")
 
             img1 = np.array(img1).astype(np.uint8)[..., :3]
             img2 = np.array(img2).astype(np.uint8)[..., :3]
@@ -73,12 +76,16 @@ class FlowDataset(data.Dataset):
             if self.vkitti2:
                 flow, valid = frame_utils.read_vkitti2_flow(self.flow_list[index])
             else:
-                flow, valid = frame_utils.readFlowKITTI(self.flow_list[index])  # [H, W, 2], [H, W]
+                flow, valid = frame_utils.readFlowKITTI(
+                    self.flow_list[index]
+                )  # [H, W, 2], [H, W]
         else:
             flow = frame_utils.read_gen(self.flow_list[index])
 
         if self.load_occlusion:
-            occlusion = frame_utils.read_gen(self.occ_list[index])  # [H, W], 0 or 255 (occluded)
+            occlusion = frame_utils.read_gen(
+                self.occ_list[index]
+            )  # [H, W], 0 or 255 (occluded)
 
         img1 = frame_utils.read_gen(self.image_list[index][0])
         img2 = frame_utils.read_gen(self.image_list[index][1])
@@ -103,7 +110,9 @@ class FlowDataset(data.Dataset):
                 img1, img2, flow, valid = self.augmentor(img1, img2, flow, valid)
             else:
                 if self.load_occlusion:
-                    img1, img2, flow, occlusion = self.augmentor(img1, img2, flow, occlusion=occlusion)
+                    img1, img2, flow, occlusion = self.augmentor(
+                        img1, img2, flow, occlusion=occlusion
+                    )
                 else:
                     img1, img2, flow = self.augmentor(img1, img2, flow)
 
@@ -122,7 +131,7 @@ class FlowDataset(data.Dataset):
         # mask out occluded pixels
         if self.load_occlusion:
             # non-occlusion: 0, occlusion: 255
-            noc_valid = 1 - occlusion / 255.  # 0 or 1
+            noc_valid = 1 - occlusion / 255.0  # 0 or 1
 
             return img1, img2, flow, valid.float(), noc_valid.float()
 
@@ -139,109 +148,145 @@ class FlowDataset(data.Dataset):
 
 
 class MpiSintel(FlowDataset):
-    def __init__(self, aug_params=None, split='training',
-                 root='datasets/Sintel',
-                 dstype='clean',
-                 load_occlusion=False,
-                 ):
-        super(MpiSintel, self).__init__(aug_params,
-                                        load_occlusion=load_occlusion,
-                                        )
+    def __init__(
+        self,
+        aug_params=None,
+        split="training",
+        root="datasets/Sintel",
+        dstype="clean",
+        load_occlusion=False,
+    ):
+        super(MpiSintel, self).__init__(
+            aug_params,
+            load_occlusion=load_occlusion,
+        )
 
-        flow_root = osp.join(root, split, 'flow')
+        flow_root = osp.join(root, split, "flow")
         image_root = osp.join(root, split, dstype)
 
         if load_occlusion:
-            occlusion_root = osp.join(root, split, 'occlusions')
+            occlusion_root = osp.join(root, split, "occlusions")
 
-        if split == 'test':
+        if split == "test":
             self.is_test = True
 
         for scene in os.listdir(image_root):
-            image_list = sorted(glob(osp.join(image_root, scene, '*.png')))
+            image_list = sorted(glob(osp.join(image_root, scene, "*.png")))
             for i in range(len(image_list) - 1):
                 self.image_list += [[image_list[i], image_list[i + 1]]]
                 self.extra_info += [(scene, i)]  # scene and frame_id
 
-            if split != 'test':
-                self.flow_list += sorted(glob(osp.join(flow_root, scene, '*.flo')))
+            if split != "test":
+                self.flow_list += sorted(glob(osp.join(flow_root, scene, "*.flo")))
 
                 if load_occlusion:
-                    self.occ_list += sorted(glob(osp.join(occlusion_root, scene, '*.png')))
+                    self.occ_list += sorted(
+                        glob(osp.join(occlusion_root, scene, "*.png"))
+                    )
 
 
 class FlyingChairs(FlowDataset):
-    def __init__(self, aug_params=None, split='train',
-                 root='datasets/FlyingChairs_release/data',
-                 ):
+    def __init__(
+        self,
+        aug_params=None,
+        split="train",
+        root="datasets/FlyingChairs_release/data",
+    ):
         super(FlyingChairs, self).__init__(aug_params)
 
-        images = sorted(glob(osp.join(root, '*.ppm')))
-        flows = sorted(glob(osp.join(root, '*.flo')))
-        assert (len(images) // 2 == len(flows))
+        images = sorted(glob(osp.join(root, "*.ppm")))
+        flows = sorted(glob(osp.join(root, "*.flo")))
+        assert len(images) // 2 == len(flows)
 
-        split_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chairs_split.txt')
+        split_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "chairs_split.txt"
+        )
         split_list = np.loadtxt(split_file, dtype=np.int32)
         for i in range(len(flows)):
             xid = split_list[i]
-            if (split == 'training' and xid == 1) or (split == 'validation' and xid == 2):
+            if (split == "training" and xid == 1) or (
+                split == "validation" and xid == 2
+            ):
                 self.flow_list += [flows[i]]
                 self.image_list += [[images[2 * i], images[2 * i + 1]]]
 
 
 class CrowdFlow(FlowDataset):
-    def __init__(self, aug_params=None, split='train',
-                 root='datasets/FlyingChairs_release/data',
-                 ):
+    def __init__(
+        self,
+        aug_params=None,
+        split="train",
+        root="datasets/TUBCrowdFlow",
+        tub_IM=1,
+    ):
         super(CrowdFlow, self).__init__(aug_params)
 
-        images = sorted(glob(osp.join(root, '*.ppm')))
-        flows = sorted(glob(osp.join(root, '*.flo')))
-        assert (len(images) // 2 == len(flows))
+        images_root = osp.join(root, "images", "IM0" + str(tub_IM))
+        flow_root = osp.join(root, "gt_flow", "IM0" + str(tub_IM))
 
-        split_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chairs_split.txt')
+        images1 = sorted(glob(osp.join(images_root, "*.png")))[1:]
+        images2 = sorted(glob(osp.join(images_root, "*.png")))[:-1]
+        images = sorted(images1 + images2)
+
+        flows = sorted(glob(osp.join(flow_root, "*.flo")))
+
+        assert len(images) // 2 == len(flows)
+
+        split_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "chairs_split.txt"
+        )
         split_list = np.loadtxt(split_file, dtype=np.int32)
         for i in range(len(flows)):
             xid = split_list[i]
-            if (split == 'training' and xid == 1) or (split == 'validation' and xid == 2):
+            if (
+                True
+                or (split == "training" and xid == 1)
+                or (split == "validation" and xid == 2)
+            ):
                 self.flow_list += [flows[i]]
                 self.image_list += [[images[2 * i], images[2 * i + 1]]]
 
 
 class FlyingThings3D(FlowDataset):
-    def __init__(self, aug_params=None,
-                 root='datasets/FlyingThings3D',
-                 dstype='frames_cleanpass',
-                 test_set=False,
-                 validate_subset=True,
-                 ):
+    def __init__(
+        self,
+        aug_params=None,
+        root="datasets/FlyingThings3D",
+        dstype="frames_cleanpass",
+        test_set=False,
+        validate_subset=True,
+    ):
         super(FlyingThings3D, self).__init__(aug_params)
 
         img_dir = root
         flow_dir = root
 
-        for cam in ['left']:
-            for direction in ['into_future', 'into_past']:
+        for cam in ["left"]:
+            for direction in ["into_future", "into_past"]:
                 if test_set:
-                    image_dirs = sorted(glob(osp.join(img_dir, dstype, 'TEST/*/*')))
+                    image_dirs = sorted(glob(osp.join(img_dir, dstype, "TEST/*/*")))
                 else:
-                    image_dirs = sorted(glob(osp.join(img_dir, dstype, 'TRAIN/*/*')))
+                    image_dirs = sorted(glob(osp.join(img_dir, dstype, "TRAIN/*/*")))
                 image_dirs = sorted([osp.join(f, cam) for f in image_dirs])
 
                 if test_set:
-                    flow_dirs = sorted(glob(osp.join(flow_dir, 'optical_flow/TEST/*/*')))
+                    flow_dirs = sorted(
+                        glob(osp.join(flow_dir, "optical_flow/TEST/*/*"))
+                    )
                 else:
-                    flow_dirs = sorted(glob(osp.join(flow_dir, 'optical_flow/TRAIN/*/*')))
+                    flow_dirs = sorted(
+                        glob(osp.join(flow_dir, "optical_flow/TRAIN/*/*"))
+                    )
                 flow_dirs = sorted([osp.join(f, direction, cam) for f in flow_dirs])
 
                 for idir, fdir in zip(image_dirs, flow_dirs):
-                    images = sorted(glob(osp.join(idir, '*.png')))
-                    flows = sorted(glob(osp.join(fdir, '*.pfm')))
+                    images = sorted(glob(osp.join(idir, "*.png")))
+                    flows = sorted(glob(osp.join(fdir, "*.pfm")))
                     for i in range(len(flows) - 1):
-                        if direction == 'into_future':
+                        if direction == "into_future":
                             self.image_list += [[images[i], images[i + 1]]]
                             self.flow_list += [flows[i]]
-                        elif direction == 'into_past':
+                        elif direction == "into_past":
                             self.image_list += [[images[i + 1], images[i]]]
                             self.flow_list += [flows[i + 1]]
 
@@ -259,15 +304,20 @@ class FlyingThings3D(FlowDataset):
 
 
 class VKITTI2(FlowDataset):
-    def __init__(self, aug_params=None,
-                 root='datasets/VKITTI2',
-                 ):
-        super(VKITTI2, self).__init__(aug_params, sparse=True, vkitti2=True,
-                                      )
+    def __init__(
+        self,
+        aug_params=None,
+        root="datasets/VKITTI2",
+    ):
+        super(VKITTI2, self).__init__(
+            aug_params,
+            sparse=True,
+            vkitti2=True,
+        )
 
         data_dir = root
 
-        scenes = ['Scene01', 'Scene02', 'Scene06', 'Scene18', 'Scene20']
+        scenes = ["Scene01", "Scene02", "Scene06", "Scene18", "Scene20"]
 
         for scene in scenes:
             scene_dir = os.path.join(data_dir, scene)
@@ -277,12 +327,28 @@ class VKITTI2(FlowDataset):
             for scene_type in types:
                 type_dir = os.path.join(scene_dir, scene_type)
 
-                imgs = sorted(glob(os.path.join(type_dir, 'frames', 'rgb', 'Camera_0', '*.jpg')))
+                imgs = sorted(
+                    glob(os.path.join(type_dir, "frames", "rgb", "Camera_0", "*.jpg"))
+                )
 
-                flows_fwd = sorted(glob(os.path.join(type_dir, 'frames', 'forwardFlow', 'Camera_0', '*.png')))
-                flows_bwd = sorted(glob(os.path.join(type_dir, 'frames', 'backwardFlow', 'Camera_0', '*.png')))
+                flows_fwd = sorted(
+                    glob(
+                        os.path.join(
+                            type_dir, "frames", "forwardFlow", "Camera_0", "*.png"
+                        )
+                    )
+                )
+                flows_bwd = sorted(
+                    glob(
+                        os.path.join(
+                            type_dir, "frames", "backwardFlow", "Camera_0", "*.png"
+                        )
+                    )
+                )
 
-                assert len(imgs) == len(flows_fwd) + 1 and len(imgs) == len(flows_bwd) + 1
+                assert (
+                    len(imgs) == len(flows_fwd) + 1 and len(imgs) == len(flows_bwd) + 1
+                )
 
                 for i in range(len(imgs) - 1):
                     # forward
@@ -295,55 +361,63 @@ class VKITTI2(FlowDataset):
 
 
 class KITTI(FlowDataset):
-    def __init__(self, aug_params=None, split='training',
-                 root='datasets/KITTI',
-                 ):
-        super(KITTI, self).__init__(aug_params, sparse=True,
-                                    )
-        if split == 'testing':
+    def __init__(
+        self,
+        aug_params=None,
+        split="training",
+        root="datasets/KITTI",
+    ):
+        super(KITTI, self).__init__(
+            aug_params,
+            sparse=True,
+        )
+        if split == "testing":
             self.is_test = True
 
         root = osp.join(root, split)
-        images1 = sorted(glob(osp.join(root, 'image_2/*_10.png')))
-        images2 = sorted(glob(osp.join(root, 'image_2/*_11.png')))
+        images1 = sorted(glob(osp.join(root, "image_2/*_10.png")))
+        images2 = sorted(glob(osp.join(root, "image_2/*_11.png")))
 
         for img1, img2 in zip(images1, images2):
             frame_id = os.path.basename(img1)
             self.extra_info += [[frame_id]]
             self.image_list += [[img1, img2]]
 
-        if split == 'training':
-            self.flow_list = sorted(glob(osp.join(root, 'flow_occ/*_10.png')))
+        if split == "training":
+            self.flow_list = sorted(glob(osp.join(root, "flow_occ/*_10.png")))
 
 
 class KITTI12(FlowDataset):
-    def __init__(self, aug_params=None, split='training',
-                 root='datasets/KITTI12'):
+    def __init__(self, aug_params=None, split="training", root="datasets/KITTI12"):
         super(KITTI12, self).__init__(aug_params, sparse=True)
-        if split == 'testing':
+        if split == "testing":
             self.is_test = True
 
         root = osp.join(root, split)
-        images1 = sorted(glob(osp.join(root, 'colored_0/*_10.png')))
-        images2 = sorted(glob(osp.join(root, 'colored_0/*_11.png')))
+        images1 = sorted(glob(osp.join(root, "colored_0/*_10.png")))
+        images2 = sorted(glob(osp.join(root, "colored_0/*_11.png")))
 
         for img1, img2 in zip(images1, images2):
             frame_id = os.path.basename(img1)
             self.extra_info += [[frame_id]]
             self.image_list += [[img1, img2]]
 
-        if split == 'training':
-            self.flow_list = sorted(glob(osp.join(root, 'flow_occ/*_10.png')))
+        if split == "training":
+            self.flow_list = sorted(glob(osp.join(root, "flow_occ/*_10.png")))
 
 
 class HD1K(FlowDataset):
-    def __init__(self, aug_params=None, root='datasets/HD1K'):
+    def __init__(self, aug_params=None, root="datasets/HD1K"):
         super(HD1K, self).__init__(aug_params, sparse=True)
 
         seq_ix = 0
         while 1:
-            flows = sorted(glob(os.path.join(root, 'hd1k_flow_gt', 'flow_occ/%06d_*.png' % seq_ix)))
-            images = sorted(glob(os.path.join(root, 'hd1k_input', 'image_2/%06d_*.png' % seq_ix)))
+            flows = sorted(
+                glob(os.path.join(root, "hd1k_flow_gt", "flow_occ/%06d_*.png" % seq_ix))
+            )
+            images = sorted(
+                glob(os.path.join(root, "hd1k_input", "image_2/%06d_*.png" % seq_ix))
+            )
 
             if len(flows) == 0:
                 break
@@ -356,70 +430,126 @@ class HD1K(FlowDataset):
 
 
 def build_train_dataset(args):
-    if args.stage == 'chairs':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.1, 'max_scale': 1.0, 'do_flip': True}
+    if args.stage == "chairs":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.1,
+            "max_scale": 1.0,
+            "do_flip": True,
+        }
 
-        train_dataset = FlyingChairs(aug_params, split='training')
+        train_dataset = FlyingChairs(aug_params, split="training")
 
-    elif args.stage == 'things':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.4, 'max_scale': 0.8, 'do_flip': True}
+    elif args.stage == "things":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.4,
+            "max_scale": 0.8,
+            "do_flip": True,
+        }
 
-        clean_dataset = FlyingThings3D(aug_params, dstype='frames_cleanpass')
-        final_dataset = FlyingThings3D(aug_params, dstype='frames_finalpass')
+        clean_dataset = FlyingThings3D(aug_params, dstype="frames_cleanpass")
+        final_dataset = FlyingThings3D(aug_params, dstype="frames_finalpass")
         train_dataset = clean_dataset + final_dataset
 
-    elif args.stage == 'vkitti2':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.3, 'max_scale': 0.5, 'do_flip': True}
+    elif args.stage == "vkitti2":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.3,
+            "max_scale": 0.5,
+            "do_flip": True,
+        }
 
         vkitti2 = VKITTI2(aug_params)  # 42420
 
         train_dataset = vkitti2
 
-    elif args.stage == 'sintel':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.6, 'do_flip': True}
+    elif args.stage == "sintel":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.2,
+            "max_scale": 0.6,
+            "do_flip": True,
+        }
 
-        things = FlyingThings3D(aug_params, dstype='frames_cleanpass')  # 40302
+        things = FlyingThings3D(aug_params, dstype="frames_cleanpass")  # 40302
 
-        sintel_clean = MpiSintel(aug_params, split='training', dstype='clean')
-        sintel_final = MpiSintel(aug_params, split='training', dstype='final')
+        sintel_clean = MpiSintel(aug_params, split="training", dstype="clean")
+        sintel_final = MpiSintel(aug_params, split="training", dstype="final")
 
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.3, 'max_scale': 0.5, 'do_flip': True}
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.3,
+            "max_scale": 0.5,
+            "do_flip": True,
+        }
 
         kitti = KITTI(aug_params=aug_params)  # 200
 
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.5, 'max_scale': 0.2, 'do_flip': True}
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.5,
+            "max_scale": 0.2,
+            "do_flip": True,
+        }
 
         hd1k = HD1K(aug_params=aug_params)  # 1047
 
-        train_dataset = 100 * sintel_clean + 100 * sintel_final + 200 * kitti + 5 * hd1k + things
+        train_dataset = (
+            100 * sintel_clean + 100 * sintel_final + 200 * kitti + 5 * hd1k + things
+        )
 
-    elif args.stage == 'sintel_ft':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.6, 'do_flip': True}
+    elif args.stage == "sintel_ft":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.2,
+            "max_scale": 0.6,
+            "do_flip": True,
+        }
 
-        sintel_clean = MpiSintel(aug_params, split='training', dstype='clean')
-        sintel_final = MpiSintel(aug_params, split='training', dstype='final')
+        sintel_clean = MpiSintel(aug_params, split="training", dstype="clean")
+        sintel_final = MpiSintel(aug_params, split="training", dstype="final")
 
         train_dataset = sintel_clean + 2 * sintel_final
 
-    elif args.stage == 'kitti':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.4, 'do_flip': False}
+    elif args.stage == "kitti":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.2,
+            "max_scale": 0.4,
+            "do_flip": False,
+        }
 
-        train_dataset = KITTI(aug_params, split='training',
-                              )
+        train_dataset = KITTI(
+            aug_params,
+            split="training",
+        )
 
-    elif args.stage == 'kitti_mix':
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.4, 'do_flip': False}
+    elif args.stage == "kitti_mix":
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.2,
+            "max_scale": 0.4,
+            "do_flip": False,
+        }
 
-        kitti15 = KITTI(aug_params, split='training',
-                        )
+        kitti15 = KITTI(
+            aug_params,
+            split="training",
+        )
 
-        aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.4, 'do_flip': False}
+        aug_params = {
+            "crop_size": args.image_size,
+            "min_scale": -0.2,
+            "max_scale": 0.4,
+            "do_flip": False,
+        }
 
-        kitti12 = KITTI12(aug_params, split='training')
+        kitti12 = KITTI12(aug_params, split="training")
 
         train_dataset = 2 * kitti15 + kitti12
 
     else:
-        raise ValueError(f'stage {args.stage} is not supported')
+        raise ValueError(f"stage {args.stage} is not supported")
 
     return train_dataset
