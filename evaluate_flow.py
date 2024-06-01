@@ -323,10 +323,26 @@ def validate_tub(
         epe = torch.sum((flow_pr[0].cpu() - flow_gt) ** 2, dim=0).sqrt()
         epe_list.append(epe.view(-1).numpy())
 
-        ae = torch.acos(
-            (flow_pr[0].cpu()[0] * flow_gt[0] + flow_pr[0].cpu()[1] * flow_gt[1])
-            / (torch.norm(flow_pr[0].cpu(), dim=0) * torch.norm(flow_gt, dim=0))
+        H = flow_pr.size()[-2]
+        W = flow_pr.size()[-1]
+        expanded_flow_pr = torch.cat(
+            [flow_pr[0].cpu(), torch.ones((H, W)).unsqueeze(dim=0)], dim=0
         )
+        expanded_flow_gt = torch.cat(
+            [flow_gt, torch.ones((H, W)).unsqueeze(dim=0)], dim=0
+        )
+
+        ae = torch.acos(
+            expanded_flow_pr[0] * expanded_flow_gt[0]
+            + expanded_flow_pr[1] * expanded_flow_gt[1]
+            + expanded_flow_pr[2]
+            * expanded_flow_gt[2]
+            / (
+                torch.norm(expanded_flow_pr, dim=0)
+                * torch.norm(expanded_flow_gt, dim=0)
+            )
+        )
+        print(ae)
         ae_list.append(ae.view(-1).numpy())
 
         if with_speed_metric:
