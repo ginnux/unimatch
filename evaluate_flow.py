@@ -342,7 +342,6 @@ def validate_tub(
                 * torch.norm(expanded_flow_gt, dim=0)
             )
         )
-        print(ae)
         ae_list.append(ae.view(-1).numpy())
 
         if with_speed_metric:
