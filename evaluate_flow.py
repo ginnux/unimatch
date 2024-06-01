@@ -286,6 +286,7 @@ def validate_tub(
     """Perform evaluation on the FlyingChairs (test) split"""
     model.eval()
     epe_list = []
+    ae_list = []
     results = {}
 
     if with_speed_metric:
@@ -322,6 +323,12 @@ def validate_tub(
         epe = torch.sum((flow_pr[0].cpu() - flow_gt) ** 2, dim=0).sqrt()
         epe_list.append(epe.view(-1).numpy())
 
+        ae = torch.acos(
+            (flow_pr[0].cpu()[0] * flow_gt[0] + flow_pr[0].cpu()[1] * flow_gt[1])
+            / (torch.norm(flow_pr[0].cpu(), dim=0) * torch.norm(flow_gt, dim=0))
+        )
+        ae_list.append(ae.view(-1).numpy())
+
         if with_speed_metric:
             flow_gt_speed = torch.sum(flow_gt**2, dim=0).sqrt()
             valid_mask = flow_gt_speed < 10
@@ -349,6 +356,10 @@ def validate_tub(
     results["chairs_1px"] = px1
     results["chairs_3px"] = px3
     results["chairs_5px"] = px5
+
+    ae_all = np.concatenate(ae_list)
+    ae = np.mean(ae_all)
+    print("Validation Crowdflow AE: %.3f" % (ae))
 
     if with_speed_metric:
         s0_10 = np.mean(np.concatenate(s0_10_list)) if len(s0_10_list) > 0 else 0
