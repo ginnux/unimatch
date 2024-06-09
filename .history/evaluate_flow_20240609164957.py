@@ -324,12 +324,11 @@ def validate_tub(
 
     print("Number of validation image pairs: %d" % len(val_dataset))
 
-    if ie_eval:
-        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-        if not os.path.exists("output"):
-            os.makedirs("output")
-        if not os.path.exists(f"output/{timestamp}"):
-            os.makedirs(f"output/{timestamp}")
+    timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+    if not os.path.exists("output"):
+        os.makedirs("output")
+    if not os.path.exists(f"output/{timestamp}"):
+        os.makedirs(f"output/{timestamp}")
 
     for val_id in range(len(val_dataset)):
         image1, image2, flow_gt, _ = val_dataset[val_id]
