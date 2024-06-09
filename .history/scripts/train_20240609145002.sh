@@ -15,7 +15,7 @@ python -m torch.distributed.launch --nproc_per_node=${NUM_GPUS} --master_port=99
 --padding_factor 16 \
 --upsample_factor 8 \
 --with_speed_metric \
---val_freq 2000 \
---save_ckpt_freq 2000 \
---num_steps 2000 \
+--val_freq 10000 \
+--save_ckpt_freq 10000 \
+--num_steps 10000 \
 2>&1 | tee -a ${CHECKPOINT_DIR}/train.log
