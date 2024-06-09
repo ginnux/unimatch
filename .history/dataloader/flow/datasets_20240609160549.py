@@ -221,7 +221,7 @@ class CrowdFlow(FlowDataset):
     ):
         super(CrowdFlow, self).__init__(aug_params)
 
-        if tub_IM == "all_train":
+        if tub_IM == "all":
             for i in range(1, 5):
                 images_root = osp.join(root, "images", "IM0" + str(i))
                 flow_root = osp.join(root, "gt_flow", "IM0" + str(i))

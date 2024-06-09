@@ -376,7 +376,6 @@ def main(args):
                 num_reg_refine=args.num_reg_refine,
                 tub_IM=args.tub_IM,
                 root=args.tub_root,
-                ie_eval=args.eval,
             )
 
             val_results.update(results_dict)
@@ -689,7 +688,6 @@ def main(args):
                         num_reg_refine=args.num_reg_refine,
                         tub_IM=5,
                         root=args.tub_root,
-                        ie_eval=args.eval,
                     )
                     if args.local_rank == 0:
                         val_results.update(results_dict)

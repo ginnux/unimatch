@@ -303,7 +303,7 @@ def validate_tub(
     num_reg_refine=1,
     tub_IM=1,
     root="datasets/TUBCrowdFlow",
-    ie_eval=False,
+    ie=False,
 ):
     """Perform evaluation on the FlyingChairs (test) split"""
     model.eval()
@@ -388,12 +388,11 @@ def validate_tub(
 
         ae_list.append(ae.view(-1).numpy())
 
-        if ie_eval:
-            image1cpu = image1.squeeze(dim=0).permute(1, 2, 0).cpu().numpy()
-            image2cpu = image2.squeeze(dim=0).permute(1, 2, 0).cpu().numpy()
-            image_pr = warp_image(image1cpu, expanded_flow_pr.permute(1, 2, 0).numpy())
-            ie = np.sqrt((np.mean((image_pr - image2cpu) ** 2)))
-            ie_list.append(ie.flatten())
+        image1cpu = image1.squeeze(dim=0).permute(1, 2, 0).cpu().numpy()
+        image2cpu = image2.squeeze(dim=0).permute(1, 2, 0).cpu().numpy()
+        image_pr = warp_image(image1cpu, expanded_flow_pr.permute(1, 2, 0).numpy())
+        ie = np.sqrt((np.mean((image_pr - image2cpu) ** 2)))
+        ie_list.append(ie.flatten())
 
         if with_speed_metric:
             flow_gt_speed = torch.sum(flow_gt**2, dim=0).sqrt()
@@ -427,12 +426,9 @@ def validate_tub(
     ae = np.mean(ae_all)
     print(f"Validation Crowdflow AE:{ae}")
 
-    if ie_eval:
-        ie_all = np.concatenate(ie_list)
-        ie = np.mean(ie_all)
-        print(f"Validation Crowdflow IE:{ie}")
-    else:
-        ie = "Uncomputed"
+    ie_all = np.concatenate(ie_list)
+    ie = np.mean(ie_all)
+    print(f"Validation Crowdflow IE:{ie}")
 
     with open("log.txt", "a") as f:
         f.write(f"\nIn TUB-IM0{tub_IM}, validation EPE:{epe}, AE:{ae}, IE:{ie}")
